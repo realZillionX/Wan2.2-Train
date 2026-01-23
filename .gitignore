@@ -1,0 +1,14 @@
+# 数据文件
+*.csv
+*.jsonl
+
+# 输出目录
+output/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# 系统文件
+.DS_Store
