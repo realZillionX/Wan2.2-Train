@@ -196,6 +196,12 @@ def convert_jsonl_to_csv(
                     continue
     
     print(f"读取 {len(data_list)} 条数据")
+    
+    # 显示第一条数据的结构
+    if data_list:
+        print(f"第一条数据的字段: {list(data_list[0].keys())}")
+        print(f"第一条数据内容: {data_list[0]}")
+    
     print(f"目标帧率: {target_fps} fps")
     print(f"输出视频目录: {output_video_dir}")
     print(f"输出 CSV: {output_csv_path}")
