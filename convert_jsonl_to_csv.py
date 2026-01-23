@@ -108,7 +108,7 @@ def main():
     parser.add_argument(
         "--input", "-i",
         type=str,
-        default="/inspire/hdd/project/embodied-multimodality/tongjingqi-CZXS25110029/chj_code/wan_train.jsonl",
+        default="/inspire/hdd/project/embodied-multimodality/public/VLMPuzzle/dataset/combined_dataset.jsonl",
         help="输入 jsonl 文件路径"
     )
     parser.add_argument(
