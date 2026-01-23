@@ -134,13 +134,16 @@ def process_prompt(video_path: str, prompt: str) -> str:
 
 def process_single_item(args):
     """处理单个数据项（用于并行）"""
-    data, output_video_dir, target_fps = args
+    data, output_video_dir, target_fps, video_base_path = args
     
-    video_path = data.get('video', '')
+    video_rel_path = data.get('video_path', '')  # 字段名是 video_path
     prompt = data.get('prompt', '')
     
-    if not video_path:
-        return {'error': '缺少 video 字段'}
+    if not video_rel_path:
+        return {'error': '缺少 video_path 字段'}
+    
+    # 拼接完整路径
+    video_path = os.path.join(video_base_path, video_rel_path)
     
     if not os.path.exists(video_path):
         return {'error': f'视频不存在: {video_path}'}
@@ -176,6 +179,7 @@ def convert_jsonl_to_csv(
     input_path: str,
     output_csv_path: str,
     output_video_dir: str,
+    video_base_path: str,
     target_fps: float = 6,
     num_workers: int = 16
 ):
@@ -208,7 +212,7 @@ def convert_jsonl_to_csv(
     print()
     
     # 准备任务
-    tasks = [(data, output_video_dir, target_fps) for data in data_list]
+    tasks = [(data, output_video_dir, target_fps, video_base_path) for data in data_list]
     
     # 并行处理
     results = []
@@ -264,6 +268,12 @@ def main():
         help="抽帧后视频输出目录"
     )
     parser.add_argument(
+        "--video-base-path",
+        type=str,
+        default="/inspire/hdd/project/embodied-multimodality/public/VLMPuzzle/dataset/",
+        help="视频文件基础路径（用于拼接 jsonl 中的相对路径）"
+    )
+    parser.add_argument(
         "--fps",
         type=float,
         default=6,
@@ -282,6 +292,7 @@ def main():
         input_path=args.input,
         output_csv_path=args.output_csv,
         output_video_dir=args.output_video_dir,
+        video_base_path=args.video_base_path,
         target_fps=args.fps,
         num_workers=args.workers
     )
