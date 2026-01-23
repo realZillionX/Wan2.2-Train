@@ -47,7 +47,14 @@ def get_video_info(video_path: str) -> tuple:
         fps = float(fps_parts[0]) / float(fps_parts[1]) if len(fps_parts) == 2 else float(fps_parts[0])
         frame_count = int(parts[1])
         return frame_count, fps
+    except FileNotFoundError:
+        print(f"错误: ffprobe 未安装或不在 PATH 中")
+        return None, None
+    except subprocess.CalledProcessError as e:
+        print(f"错误: ffprobe 执行失败 {video_path}: {e.stderr}")
+        return None, None
     except Exception as e:
+        print(f"错误: 获取视频信息失败 {video_path}: {e}")
         return None, None
 
 
@@ -102,9 +109,13 @@ def downsample_video(input_path: str, output_path: str, target_fps: float = 6) -
     ]
     
     try:
-        subprocess.run(cmd, capture_output=True, check=True)
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
         return True
-    except subprocess.CalledProcessError:
+    except FileNotFoundError:
+        print(f"错误: ffmpeg 未安装或不在 PATH 中")
+        return False
+    except subprocess.CalledProcessError as e:
+        print(f"错误: ffmpeg 执行失败 {input_path}: {e.stderr}")
         return False
 
 
@@ -128,8 +139,11 @@ def process_single_item(args):
     video_path = data.get('video', '')
     prompt = data.get('prompt', '')
     
-    if not video_path or not os.path.exists(video_path):
-        return None
+    if not video_path:
+        return {'error': '缺少 video 字段'}
+    
+    if not os.path.exists(video_path):
+        return {'error': f'视频不存在: {video_path}'}
     
     # 构建输出路径（保持相对目录结构）
     # 从 video_path 中提取 dataset_xxx/xxx.mp4 部分
@@ -192,13 +206,23 @@ def convert_jsonl_to_csv(
     
     # 并行处理
     results = []
+    errors = []
     with ProcessPoolExecutor(max_workers=num_workers) as executor:
         futures = [executor.submit(process_single_item, task) for task in tasks]
         
         for future in tqdm(as_completed(futures), total=len(futures), desc="处理视频"):
             result = future.result()
             if result:
-                results.append(result)
+                if 'error' in result:
+                    errors.append(result['error'])
+                else:
+                    results.append(result)
+    
+    # 显示错误样本
+    if errors:
+        print(f"\n前 5 个错误示例:")
+        for err in errors[:5]:
+            print(f"  - {err}")
     
     # 写入 CSV
     os.makedirs(os.path.dirname(output_csv_path), exist_ok=True)
