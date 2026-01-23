@@ -6,11 +6,13 @@ export DIFFSYNTH_SKIP_DOWNLOAD=True
 export HF_HUB_OFFLINE=1
 export TRANSFORMERS_OFFLINE=1
 
+# ============ 项目基础路径 ============
+PROJECT_BASE="/inspire/hdd/project/embodied-multimodality/tongjingqi-CZXS25110029/chj_code/Wan2.2-Train"
+
 # ============ 模型路径配置 ============
 MODEL_BASE_PATH="/inspire/hdd/project/embodied-multimodality/public/downloaded_ckpts/Wan2.2-TI2V-5B"
 TOKENIZER_PATH="${MODEL_BASE_PATH}/google/umt5-xxl"
 
-# 模型文件路径（JSON 格式）
 MODEL_PATHS='[
     [
         "'${MODEL_BASE_PATH}'/diffusion_pytorch_model-00001-of-00003.safetensors",
@@ -23,7 +25,7 @@ MODEL_PATHS='[
 
 # ============ 数据集配置 ============
 DATASET_BASE_PATH=""
-METADATA_PATH="/inspire/hdd/project/embodied-multimodality/tongjingqi-CZXS25110029/chj_code/wan_train.csv"
+METADATA_PATH="${PROJECT_BASE}/wan_train.csv"
 
 # ============ 视频配置 ============
 NUM_FRAMES=249     
@@ -38,35 +40,22 @@ LORA_RANK=16
 GRADIENT_ACCUMULATION=1
 
 # ============ 输出配置 ============
-OUTPUT_PATH="/inspire/hdd/project/embodied-multimodality/tongjingqi-CZXS25110029/chj_code/Wan2.2-TI2V-5B_lora_rank16_multi"
+OUTPUT_PATH="${PROJECT_BASE}/output/rank16_multi"
 SAVE_STEPS=250
 
 # ============ 路径配置 ============
 DIFFSYNTH_PATH="/inspire/hdd/project/embodied-multimodality/tongjingqi-CZXS25110029/chj_code/DiffSynth-Studio"
 CONFIG_FILE="$(dirname "$0")/accelerate_config_multi_node.yaml"
-TRAIN_SCRIPT="/inspire/hdd/project/embodied-multimodality/tongjingqi-CZXS25110029/chj_code/train.py"
+TRAIN_SCRIPT="${PROJECT_BASE}/train.py"
 
-# ============ 打印配置 ============
 echo "========================================"
 echo "Wan2.2-TI2V-5B LoRA 多机分布式训练 (Rank=16)"
 echo "========================================"
-echo ""
-echo "配置信息:"
-echo "  模型路径: ${MODEL_BASE_PATH}"
-echo "  Tokenizer: ${TOKENIZER_PATH}"
-echo "  数据集: ${METADATA_PATH}"
-echo "  输出路径: ${OUTPUT_PATH}"
-echo ""
-echo "训练参数:"
 echo "  LoRA Rank: ${LORA_RANK}"
-echo "  学习率: ${LEARNING_RATE}"
 echo "  Epochs: ${NUM_EPOCHS}"
-echo "  帧数: ${NUM_FRAMES}"
-echo "  分辨率: ${HEIGHT}x${WIDTH}"
+echo "  输出路径: ${OUTPUT_PATH}"
 echo "========================================"
-echo ""
 
-# ============ 启动训练 ============
 cd ${DIFFSYNTH_PATH}
 
 accelerate launch \
@@ -92,5 +81,4 @@ accelerate launch \
   --use_gradient_checkpointing \
   --save_steps ${SAVE_STEPS}
 
-echo ""
 echo "训练完成！模型保存在: ${OUTPUT_PATH}"

@@ -6,6 +6,8 @@ export HF_HUB_OFFLINE=1
 export TRANSFORMERS_OFFLINE=1
 export NCCL_P2P_DISABLE=1
 
+PROJECT_BASE="/inspire/hdd/project/embodied-multimodality/tongjingqi-CZXS25110029/chj_code/Wan2.2-Train"
+
 MODEL_BASE_PATH="/inspire/hdd/project/embodied-multimodality/public/downloaded_ckpts/Wan2.2-TI2V-5B"
 TOKENIZER_PATH="${MODEL_BASE_PATH}/google/umt5-xxl"
 
@@ -20,7 +22,7 @@ MODEL_PATHS='[
 ]'
 
 DATASET_BASE_PATH=""
-METADATA_PATH="/inspire/hdd/project/embodied-multimodality/tongjingqi-CZXS25110029/chj_code/wan_train.csv"
+METADATA_PATH="${PROJECT_BASE}/wan_train.csv"
 
 NUM_FRAMES=249     
 HEIGHT=480
@@ -32,11 +34,11 @@ NUM_EPOCHS=3
 LORA_RANK=64
 GRADIENT_ACCUMULATION=1
 
-OUTPUT_PATH="/inspire/hdd/project/embodied-multimodality/tongjingqi-CZXS25110029/chj_code/Wan2.2-TI2V-5B_lora_rank64"
+OUTPUT_PATH="${PROJECT_BASE}/output/rank64"
 SAVE_STEPS=250
 
 DIFFSYNTH_PATH="/inspire/hdd/project/embodied-multimodality/tongjingqi-CZXS25110029/chj_code/DiffSynth-Studio"
-TRAIN_SCRIPT="/inspire/hdd/project/embodied-multimodality/tongjingqi-CZXS25110029/chj_code/train.py"
+TRAIN_SCRIPT="${PROJECT_BASE}/train.py"
 
 cd ${DIFFSYNTH_PATH}
 

@@ -1,12 +1,12 @@
 #!/bin/bash
 set -e
 
-# ============ 离线模式配置 ============
 export DIFFSYNTH_SKIP_DOWNLOAD=True
 export HF_HUB_OFFLINE=1
 export TRANSFORMERS_OFFLINE=1
 
-# ============ 模型路径配置 ============
+PROJECT_BASE="/inspire/hdd/project/embodied-multimodality/tongjingqi-CZXS25110029/chj_code/Wan2.2-Train"
+
 MODEL_BASE_PATH="/inspire/hdd/project/embodied-multimodality/public/downloaded_ckpts/Wan2.2-TI2V-5B"
 TOKENIZER_PATH="${MODEL_BASE_PATH}/google/umt5-xxl"
 
@@ -20,30 +20,25 @@ MODEL_PATHS='[
     "'${MODEL_BASE_PATH}'/Wan2.2_VAE.pth"
 ]'
 
-# ============ 数据集配置 ============
 DATASET_BASE_PATH=""
-METADATA_PATH="/inspire/hdd/project/embodied-multimodality/tongjingqi-CZXS25110029/chj_code/wan_train.csv"
+METADATA_PATH="${PROJECT_BASE}/wan_train.csv"
 
-# ============ 视频配置 ============
 NUM_FRAMES=249     
 HEIGHT=480
 WIDTH=832
 
-# ============ 训练配置 ============
 DATASET_REPEAT=1
 LEARNING_RATE=1e-4
 NUM_EPOCHS=3
 LORA_RANK=32
 GRADIENT_ACCUMULATION=1
 
-# ============ 输出配置 ============
-OUTPUT_PATH="/inspire/hdd/project/embodied-multimodality/tongjingqi-CZXS25110029/chj_code/Wan2.2-TI2V-5B_lora_rank32_multi"
+OUTPUT_PATH="${PROJECT_BASE}/output/rank32_multi"
 SAVE_STEPS=250
 
-# ============ 路径配置 ============
 DIFFSYNTH_PATH="/inspire/hdd/project/embodied-multimodality/tongjingqi-CZXS25110029/chj_code/DiffSynth-Studio"
 CONFIG_FILE="$(dirname "$0")/accelerate_config_multi_node.yaml"
-TRAIN_SCRIPT="/inspire/hdd/project/embodied-multimodality/tongjingqi-CZXS25110029/chj_code/train.py"
+TRAIN_SCRIPT="${PROJECT_BASE}/train.py"
 
 echo "========================================"
 echo "Wan2.2-TI2V-5B LoRA 多机分布式训练 (Rank=32)"

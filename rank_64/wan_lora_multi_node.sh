@@ -5,6 +5,8 @@ export DIFFSYNTH_SKIP_DOWNLOAD=True
 export HF_HUB_OFFLINE=1
 export TRANSFORMERS_OFFLINE=1
 
+PROJECT_BASE="/inspire/hdd/project/embodied-multimodality/tongjingqi-CZXS25110029/chj_code/Wan2.2-Train"
+
 MODEL_BASE_PATH="/inspire/hdd/project/embodied-multimodality/public/downloaded_ckpts/Wan2.2-TI2V-5B"
 TOKENIZER_PATH="${MODEL_BASE_PATH}/google/umt5-xxl"
 
@@ -19,7 +21,7 @@ MODEL_PATHS='[
 ]'
 
 DATASET_BASE_PATH=""
-METADATA_PATH="/inspire/hdd/project/embodied-multimodality/tongjingqi-CZXS25110029/chj_code/wan_train.csv"
+METADATA_PATH="${PROJECT_BASE}/wan_train.csv"
 
 NUM_FRAMES=249     
 HEIGHT=480
@@ -31,12 +33,12 @@ NUM_EPOCHS=3
 LORA_RANK=64
 GRADIENT_ACCUMULATION=1
 
-OUTPUT_PATH="/inspire/hdd/project/embodied-multimodality/tongjingqi-CZXS25110029/chj_code/Wan2.2-TI2V-5B_lora_rank64_multi"
+OUTPUT_PATH="${PROJECT_BASE}/output/rank64_multi"
 SAVE_STEPS=250
 
 DIFFSYNTH_PATH="/inspire/hdd/project/embodied-multimodality/tongjingqi-CZXS25110029/chj_code/DiffSynth-Studio"
 CONFIG_FILE="$(dirname "$0")/accelerate_config_multi_node.yaml"
-TRAIN_SCRIPT="/inspire/hdd/project/embodied-multimodality/tongjingqi-CZXS25110029/chj_code/train.py"
+TRAIN_SCRIPT="${PROJECT_BASE}/train.py"
 
 echo "========================================"
 echo "Wan2.2-TI2V-5B LoRA 多机分布式训练 (Rank=64)"
