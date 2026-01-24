@@ -128,8 +128,9 @@ def launch_training_task_resume(
         save_steps = args.save_steps
         num_epochs = args.num_epochs
     
-    # Custom: Get start_epoch from args (default 0)
+    # Custom: Get resume info from args
     start_epoch = getattr(args, "start_epoch", 0)
+    resume_step = getattr(args, "resume_step", None)
     
     optimizer = torch.optim.AdamW(model.trainable_modules(), lr=learning_rate, weight_decay=weight_decay)
     scheduler = torch.optim.lr_scheduler.ConstantLR(optimizer)
@@ -137,12 +138,23 @@ def launch_training_task_resume(
     
     model, optimizer, dataloader, scheduler = accelerator.prepare(model, optimizer, dataloader, scheduler)
     
-    # Fast-forward logger steps if resuming
-    if start_epoch > 0:
-        if accelerator.is_main_process:
-            print(f"Resuming training from Epoch {start_epoch}")
-        estimated_steps = start_epoch * len(dataloader)
+    # Calculate step offset for visual continuity
+    steps_per_epoch = len(dataloader)
+    if resume_step is not None:
+        # If explicitly resuming from step N, set num_steps to N
+        # And calculate estimated start_epoch if not provided (or override 0)
+        model_logger.num_steps = resume_step
+        if start_epoch == 0:
+            start_epoch = resume_step // steps_per_epoch
+            if accelerator.is_main_process:
+                print(f"Estimated resume epoch based on step {resume_step}: Epoch {start_epoch}")
+    elif start_epoch > 0:
+        # If resuming from epoch but no step info, estimate steps
+        estimated_steps = start_epoch * steps_per_epoch
         model_logger.num_steps = estimated_steps
+
+    if accelerator.is_main_process and start_epoch > 0:
+        print(f"Resuming training loop from Epoch {start_epoch} (Step {model_logger.num_steps})")
 
     for epoch_id in range(start_epoch, num_epochs):
         for data in tqdm(dataloader):
@@ -226,6 +238,14 @@ if __name__ == "__main__":
         if latest_ckpt:
             print(f"[Auto Resume] Setting lora_checkpoint = {latest_ckpt}")
             args.lora_checkpoint = latest_ckpt
+            
+            # If step-based checkpoint logic
+            if "step-" in os.path.basename(latest_ckpt):
+                try:
+                    args.resume_step = int(os.path.basename(latest_ckpt).split("-")[1].split(".")[0])
+                    # We don't set start_epoch here, let runner calculate it from len(dataloader)
+                except:
+                    pass
     # =====================================================
 
     accelerator = accelerate.Accelerator(
