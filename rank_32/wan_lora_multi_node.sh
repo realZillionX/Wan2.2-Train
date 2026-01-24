@@ -48,43 +48,12 @@ echo "  Epochs: ${NUM_EPOCHS}"
 echo "  输出路径: ${OUTPUT_PATH}"
 echo "========================================"
 
-# ============ 分布式配置 ============
-NUM_NODES=5
-GPUS_PER_NODE=8
 
-# 自动获取主节点 IP (假设第一个节点是主节点，或者由 SLURM 指定)
-# 如果手动运行，请确保在所有节点上设置相同的 MASTER_ADDR
-if [ -z "$MASTER_ADDR" ]; then
-    echo "Warning: MASTER_ADDR not set, using localhost (Single Node mode?)"
-    export MASTER_ADDR=localhost
-fi
-
-if [ -z "$MASTER_PORT" ]; then
-    export MASTER_PORT=29500
-fi
-
-if [ -z "$NODE_RANK" ]; then
-    if [ -n "$SLURM_PROCID" ]; then
-        export NODE_RANK=$SLURM_PROCID
-    elif [ -n "$SLURM_NODEID" ]; then
-        export NODE_RANK=$SLURM_NODEID
-    else
-        echo "Warning: NODE_RANK not set, defaulting to 0"
-        export NODE_RANK=0
-    fi
-fi
-
-echo "Distributed Config: Nodes=${NUM_NODES}, GPs/Node=${GPUS_PER_NODE}, Rank=${NODE_RANK}, Master=${MASTER_ADDR}:${MASTER_PORT}"
 
 cd ${DIFFSYNTH_PATH}
 
 accelerate launch \
   --config_file "${CONFIG_FILE}" \
-  --num_machines ${NUM_NODES} \
-  --num_processes $((NUM_NODES * GPUS_PER_NODE)) \
-  --machine_rank ${NODE_RANK} \
-  --main_process_ip ${MASTER_ADDR} \
-  --main_process_port ${MASTER_PORT} \
   ${TRAIN_SCRIPT} \
   --dataset_base_path "${DATASET_BASE_PATH}" \
   --dataset_metadata_path "${METADATA_PATH}" \
