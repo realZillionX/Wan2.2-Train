@@ -122,12 +122,20 @@ def downsample_video(input_path: str, output_path: str, target_fps: float = 6) -
 def process_prompt(video_path: str, prompt: str) -> str:
     """根据视频路径处理 prompt"""
     if "dataset_eyeballing" in video_path:
-        sentences = prompt.split("。")
+        # 尝试中文句号
+        if "。" in prompt:
+            sentences = prompt.split("。")
+            sep = "。"
+        else:
+            # 尝试英文句号
+            sentences = prompt.split(".")
+            sep = "."
+            
         sentences = [s.strip() for s in sentences if s.strip()]
         if len(sentences) > 2:
-            processed = "。".join(sentences[:-2])
-            if processed and not processed.endswith("。"):
-                processed += "。"
+            processed = sep.join(sentences[:-2])
+            if processed and not processed.endswith(sep):
+                processed += sep
             return processed
     return prompt
 
@@ -160,18 +168,23 @@ def process_single_item(args):
     
     output_video_path = os.path.join(output_video_dir, rel_path)
     
-    # 抽帧
-    success = downsample_video(video_path, output_video_path, target_fps)
+    # 检查是否已存在（跳过已处理的视频）
+    if os.path.exists(output_video_path):
+        # print(f"视频已存在，跳过: {output_video_path}")
+        success = True
+    else:
+        # 抽帧
+        success = downsample_video(video_path, output_video_path, target_fps)
     
     if not success:
-        return None
+        return {'error': f'抽帧失败: {video_path}'}
     
     # 处理 prompt
     processed_prompt = process_prompt(video_path, prompt)
     
     return {
         'video': output_video_path,
-        'text': processed_prompt
+        'prompt': processed_prompt
     }
 
 
@@ -237,10 +250,11 @@ def convert_jsonl_to_csv(
     # 写入 CSV
     os.makedirs(os.path.dirname(output_csv_path), exist_ok=True)
     with open(output_csv_path, 'w', encoding='utf-8', newline='') as f:
-        writer = csv.writer(f)
-        writer.writerow(['video', 'text'])
+        # 使用 QUOTE_ALL 确保所有字段都被引号包裹，防止逗号分隔符问题
+        writer = csv.writer(f, quoting=csv.QUOTE_ALL)
+        writer.writerow(['video', 'prompt'])  # train.py 需要 'prompt' 字段
         for item in results:
-            writer.writerow([item['video'], item['text']])
+            writer.writerow([item['video'], item['prompt']])
     
     print(f"\n转换完成!")
     print(f"  成功处理: {len(results)} 条")
