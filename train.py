@@ -1,4 +1,5 @@
 import torch, os, argparse, accelerate, warnings
+from tqdm import tqdm
 from diffsynth.core import UnifiedDataset
 from diffsynth.core.data.operators import LoadVideo, LoadAudio, ImageCropAndResize, ToAbsolutePath
 from diffsynth.pipelines.wan_video import WanVideoPipeline, ModelConfig
@@ -108,6 +109,58 @@ class WanTrainingModule(DiffusionTrainingModule):
         return loss
 
 
+def launch_training_task_resume(
+    accelerator: accelerate.Accelerator,
+    dataset: torch.utils.data.Dataset,
+    model: DiffusionTrainingModule,
+    model_logger: ModelLogger,
+    learning_rate: float = 1e-5,
+    weight_decay: float = 1e-2,
+    num_workers: int = 1,
+    save_steps: int = None,
+    num_epochs: int = 1,
+    args = None,
+):
+    if args is not None:
+        learning_rate = args.learning_rate
+        weight_decay = args.weight_decay
+        num_workers = args.dataset_num_workers
+        save_steps = args.save_steps
+        num_epochs = args.num_epochs
+    
+    # Custom: Get start_epoch from args (default 0)
+    start_epoch = getattr(args, "start_epoch", 0)
+    
+    optimizer = torch.optim.AdamW(model.trainable_modules(), lr=learning_rate, weight_decay=weight_decay)
+    scheduler = torch.optim.lr_scheduler.ConstantLR(optimizer)
+    dataloader = torch.utils.data.DataLoader(dataset, shuffle=True, collate_fn=lambda x: x[0], num_workers=num_workers)
+    
+    model, optimizer, dataloader, scheduler = accelerator.prepare(model, optimizer, dataloader, scheduler)
+    
+    # Fast-forward logger steps if resuming
+    if start_epoch > 0:
+        if accelerator.is_main_process:
+            print(f"Resuming training from Epoch {start_epoch}")
+        estimated_steps = start_epoch * len(dataloader)
+        model_logger.num_steps = estimated_steps
+
+    for epoch_id in range(start_epoch, num_epochs):
+        for data in tqdm(dataloader):
+            with accelerator.accumulate(model):
+                optimizer.zero_grad()
+                if dataset.load_from_cache:
+                    loss = model({}, inputs=data)
+                else:
+                    loss = model(data)
+                accelerator.backward(loss)
+                optimizer.step()
+                model_logger.on_step_end(accelerator, model, save_steps, loss=loss)
+                scheduler.step()
+        if save_steps is None:
+            model_logger.on_epoch_end(accelerator, model, epoch_id)
+    model_logger.on_training_end(accelerator, model, save_steps)
+
+
 def wan_parser():
     parser = argparse.ArgumentParser(description="Simple example of a training script.")
     parser = add_general_config(parser)
@@ -155,7 +208,12 @@ if __name__ == "__main__":
             # Sort by number: epoch-1.safetensors, epoch-10.safetensors
             epoch_ckpts.sort(key=lambda x: int(x.split("-")[1].split(".")[0]))
             latest_ckpt = os.path.join(args.output_path, epoch_ckpts[-1])
-            print(f"[Auto Resume] Found epoch checkpoint: {latest_ckpt}")
+            try:
+                # epoch-X means X is finished, so start from X+1
+                args.start_epoch = int(epoch_ckpts[-1].split("-")[1].split(".")[0]) + 1
+            except:
+                args.start_epoch = 0
+            print(f"[Auto Resume] Found epoch checkpoint: {latest_ckpt}, resuming at Epoch {args.start_epoch}")
         
         # 2. If no epoch checkpoint, try step checkpoint
         if latest_ckpt is None:
@@ -224,8 +282,8 @@ if __name__ == "__main__":
     launcher_map = {
         "sft:data_process": launch_data_process_task,
         "direct_distill:data_process": launch_data_process_task,
-        "sft": launch_training_task,
-        "sft:train": launch_training_task,
+        "sft": launch_training_task_resume,
+        "sft:train": launch_training_task_resume,
         "direct_distill": launch_training_task,
         "direct_distill:train": launch_training_task,
     }
