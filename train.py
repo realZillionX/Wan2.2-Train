@@ -123,6 +123,53 @@ def wan_parser():
 if __name__ == "__main__":
     parser = wan_parser()
     args = parser.parse_args()
+
+    # ================= Auto Resume Logic =================
+    if args.lora_checkpoint is None and os.path.exists(args.output_path):
+        checkpoints = []
+        for file in os.listdir(args.output_path):
+            if file.endswith(".safetensors"):
+                # Parse epoch-X.safetensors
+                if file.startswith("epoch-"):
+                    try:
+                        idx = int(file.split("-")[1].split(".")[0])
+                        checkpoints.append((idx, file, "epoch"))
+                    except: pass
+                # Parse step-Y.safetensors
+                elif file.startswith("step-"):
+                    try:
+                        idx = int(file.split("-")[1].split(".")[0])
+                        # Prioritize epoch over step if numbers are confusing, but usually max is best
+                        # Give steps a lower priority or treat them separately?
+                        # Let's just treat them as candidates.
+                        # Actually epoch numbers are small (0,1,2..), step numbers are large (500, 1000..).
+                        # Let's prioritize epochs if available, else steps?
+                        # Better strategy: Find MAX epoch. If no epochs, find MAX step.
+                        pass # Handle separately
+                    except: pass
+        
+        # 1. Try to find latest epoch checkpoint
+        latest_ckpt = None
+        epoch_ckpts = [f for f in os.listdir(args.output_path) if f.startswith("epoch-") and f.endswith(".safetensors")]
+        if epoch_ckpts:
+            # Sort by number: epoch-1.safetensors, epoch-10.safetensors
+            epoch_ckpts.sort(key=lambda x: int(x.split("-")[1].split(".")[0]))
+            latest_ckpt = os.path.join(args.output_path, epoch_ckpts[-1])
+            print(f"[Auto Resume] Found epoch checkpoint: {latest_ckpt}")
+        
+        # 2. If no epoch checkpoint, try step checkpoint
+        if latest_ckpt is None:
+            step_ckpts = [f for f in os.listdir(args.output_path) if f.startswith("step-") and f.endswith(".safetensors")]
+            if step_ckpts:
+                step_ckpts.sort(key=lambda x: int(x.split("-")[1].split(".")[0]))
+                latest_ckpt = os.path.join(args.output_path, step_ckpts[-1])
+                print(f"[Auto Resume] Found step checkpoint: {latest_ckpt}")
+        
+        if latest_ckpt:
+            print(f"[Auto Resume] Setting lora_checkpoint = {latest_ckpt}")
+            args.lora_checkpoint = latest_ckpt
+    # =====================================================
+
     accelerator = accelerate.Accelerator(
         gradient_accumulation_steps=args.gradient_accumulation_steps,
         kwargs_handlers=[accelerate.DistributedDataParallelKwargs(find_unused_parameters=args.find_unused_parameters)],
