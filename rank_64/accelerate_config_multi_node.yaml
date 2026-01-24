@@ -1,5 +1,5 @@
 # DeepSpeed ZeRO-2 配置文件
-# 2 节点 × 8 GPU 分布式训练 - LORA_RANK=64
+# 5 节点 × 8 GPU 分布式训练 - LORA_RANK=64
 
 compute_environment: LOCAL_MACHINE
 debug: false
@@ -15,8 +15,8 @@ enable_cpu_affinity: false
 machine_rank: 0
 main_training_function: main
 mixed_precision: bf16
-num_machines: 2
-num_processes: 16
+num_machines: 5
+num_processes: 40
 rdzv_backend: static
 same_network: true
 tpu_env: []

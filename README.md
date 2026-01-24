@@ -12,7 +12,7 @@
 
 每个文件夹包含：
 - `wan_lora.sh` - 单机训练脚本
-- `wan_lora_multi_node.sh` - 多机分布式训练 (2节点×8卡)
+- `wan_lora_multi_node.sh` - 多机分布式训练 (5节点×8卡)
 - `accelerate_config_multi_node.yaml` - DeepSpeed ZeRO-2 配置
 
 ## 统一训练配置
@@ -21,7 +21,7 @@
 |------|-----|
 | NUM_EPOCHS | 3 |
 | SAVE_STEPS | 250 |
-| 多节点配置 | 2节点 × 8 GPU (16进程) |
+| 多节点配置 | 5节点 × 8 GPU (40进程) |
 | 学习率 | 1e-4 |
 | 视频帧数 | 249 |
 | 分辨率 | 480×832 |
