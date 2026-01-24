@@ -157,7 +157,28 @@ def launch_training_task_resume(
         print(f"Resuming training loop from Epoch {start_epoch} (Step {model_logger.num_steps})")
 
     for epoch_id in range(start_epoch, num_epochs):
-        for data in tqdm(dataloader):
+        # Calculate how many steps we already did in this epoch (if resuming mid-epoch)
+        steps_already = 0
+        if epoch_id == start_epoch and resume_step is not None:
+            # resume_step is global. steps_already = resume_step % steps_per_epoch
+            # Wait, resume_step = 3500. Epoch 3 starts at 3000. steps_already = 500.
+            # Only apply skip if resuming at the *exact* start epoch.
+            if steps_per_epoch > 0:
+                steps_already = resume_step % steps_per_epoch
+        
+        # Prepare dataloader
+        current_dataloader = dataloader
+        if steps_already > 0:
+            if accelerator.is_main_process:
+                print(f"Skipping first {steps_already} batches in Epoch {epoch_id}")
+            current_dataloader = accelerator.skip_first_batches(dataloader, num_batches=steps_already)
+        
+        # Tqdm bar with initial value
+        # Note: skip_first_batches reduces len(current_dataloader) effectively? 
+        # Actually accelerate docs say it yields remaining. Tqdm needs 'total' to be original length if 'initial' is set?
+        # Usually: tqdm(loader, initial=steps_already, total=steps_per_epoch)
+        
+        for data in tqdm(current_dataloader, initial=steps_already, total=steps_per_epoch, disable=not accelerator.is_local_main_process):
             with accelerator.accumulate(model):
                 optimizer.zero_grad()
                 if dataset.load_from_cache:
