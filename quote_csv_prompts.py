@@ -21,16 +21,19 @@ def quote_prompts(input_path, output_path):
                 print("Warning: 'prompt' column not found. All columns will still be quoted.")
 
             with open(output_path, 'w', encoding='utf-8', newline='') as fout:
-                # Use QUOTE_ALL to force quotes around EVERYTHING, ensuring prompts are quoted.
-                writer = csv.DictWriter(fout, fieldnames=fieldnames, quoting=csv.QUOTE_ALL)
-                writer.writeheader()
+                # 1. Write Header use QUOTE_MINIMAL (No quotes unless necessary, looks cleaner)
+                writer_header = csv.DictWriter(fout, fieldnames=fieldnames, quoting=csv.QUOTE_MINIMAL)
+                writer_header.writeheader()
+                
+                # 2. Write Body using QUOTE_ALL (Force quotes on everything)
+                writer_body = csv.DictWriter(fout, fieldnames=fieldnames, quoting=csv.QUOTE_ALL)
                 
                 count = 0
                 for row in reader:
-                    # Clean up prompt if needed (e.g. strip newlines if they are messy, but CSV handles internal newlines fine)
+                    # Clean up prompt if needed
                     if 'prompt' in row and row['prompt']:
                         row['prompt'] = row['prompt'].strip()
-                    writer.writerow(row)
+                    writer_body.writerow(row)
                     count += 1
                     
         print(f"Success! Processed {count} rows. All fields including 'prompt' are now wrapped in \"\".")
