@@ -13,11 +13,7 @@
 ```
 
 ## 数据集
-
-脚本启动时会自动合并以下三个 CSV 文件到项目根目录的 `wan_train.csv`：
-1. `/inspire/hdd/project/embodied-multimodality/public/hjchen/MazeSquare/part_7x7.csv`
-2. `/inspire/hdd/project/embodied-multimodality/public/hjchen/MazeSquare/part_9x9.csv`
-3. `/inspire/hdd/project/embodied-multimodality/public/hjchen/MazeSquare/part_11x11.csv`
+使用单一数据集文件：`/inspire/hdd/project/embodied-multimodality/public/hjchen/MazeSquare/dataset.csv`
 
 ## 训练配置
 

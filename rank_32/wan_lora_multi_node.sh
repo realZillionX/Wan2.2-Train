@@ -21,44 +21,7 @@ MODEL_PATHS='[
 ]'
 # ============ 数据集配置 ============
 DATASET_BASE_PATH=""
-METADATA_PATH="${PROJECT_BASE}/wan_train.csv"
-
-# 自动合并 CSV
-python3 -c "
-import csv, os
-files = [
-    '/inspire/hdd/project/embodied-multimodality/public/hjchen/MazeSquare/part_7x7.csv',
-    '/inspire/hdd/project/embodied-multimodality/public/hjchen/MazeSquare/part_9x9.csv',
-    '/inspire/hdd/project/embodied-multimodality/public/hjchen/MazeSquare/part_11x11.csv'
-]
-output_file = '${PROJECT_BASE}/wan_train.csv'
-print(f'Merging {len(files)} CSV files into {output_file}...')
-header = None
-total_rows = 0
-try:
-    with open(output_file, 'w', newline='') as fout:
-        writer = csv.writer(fout)
-        for f_path in files:
-            if not os.path.exists(f_path):
-                print(f'Warning: File not found: {f_path}')
-                continue
-            with open(f_path, 'r') as fin:
-                reader = csv.reader(fin)
-                try:
-                    h = next(reader)
-                    if header is None:
-                        header = h
-                        writer.writerow(header)
-                    for row in reader:
-                        writer.writerow(row)
-                        total_rows += 1
-                except StopIteration:
-                    pass
-    print(f'Success! Merged {total_rows} rows.')
-except Exception as e:
-    print(f'Error merging CSVs: {e}')
-    exit(1)
-"
+METADATA_PATH="/inspire/hdd/project/embodied-multimodality/public/hjchen/MazeSquare/dataset.csv"
 
 # ============ 视频配置 ============
 NUM_FRAMES=223
