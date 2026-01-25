@@ -27,8 +27,9 @@ METADATA_PATH="/inspire/hdd/project/embodied-multimodality/public/hjchen/MazeSqu
 
 # ============ 视频配置 ============
 
-NUM_FRAMES=223
-HEIGHT=873
+# ============ 视频配置 ============
+NUM_FRAMES=225
+HEIGHT=896
 WIDTH=480
 
 DATASET_REPEAT=1
