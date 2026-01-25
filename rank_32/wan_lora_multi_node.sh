@@ -62,8 +62,8 @@ except Exception as e:
 
 # ============ 视频配置 ============
 NUM_FRAMES=223
-HEIGHT=360
-WIDTH=720
+HEIGHT=873
+WIDTH=480
 
 # ============ 训练配置 ============
 DATASET_REPEAT=1
