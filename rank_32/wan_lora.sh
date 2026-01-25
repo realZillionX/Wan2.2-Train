@@ -23,7 +23,7 @@ MODEL_PATHS='[
 
 # ============ 数据集配置 ============
 DATASET_BASE_PATH=""
-METADATA_PATH="/inspire/hdd/project/embodied-multimodality/public/hjchen/MazeSquare/dataset.csv"
+METADATA_PATH="/inspire/hdd/project/embodied-multimodality/tongjingqi-CZXS25110029/chj_code/Wan2.2-Train/dataset.csv"
 
 # ============ 视频配置 ============
 

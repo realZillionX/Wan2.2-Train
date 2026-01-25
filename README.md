@@ -13,7 +13,7 @@
 ```
 
 ## 数据集
-使用单一数据集文件：`/inspire/hdd/project/embodied-multimodality/public/hjchen/MazeSquare/dataset.csv`
+使用单一数据集文件：`/inspire/hdd/project/embodied-multimodality/tongjingqi-CZXS25110029/chj_code/Wan2.2-Train/dataset.csv`
 
 ## 训练配置
 
