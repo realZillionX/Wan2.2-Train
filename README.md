@@ -7,6 +7,7 @@
 ```
 ├── rank_32/    # LORA_RANK=32
 │   ├── wan_lora_multi_node.sh  # 5节点启动脚本
+│   ├── wan_lora.sh             # 单机启动脚本
 │   └── accelerate_config_multi_node.yaml
 └── train.py    # 训练主程序 (支持自动续训)
 ```
