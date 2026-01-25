@@ -28,7 +28,7 @@ METADATA_PATH="/inspire/hdd/project/embodied-multimodality/tongjingqi-CZXS251100
 # ============ 视频配置 ============
 
 # ============ 视频配置 ============
-NUM_FRAMES=225
+NUM_FRAMES=81
 HEIGHT=896
 WIDTH=480
 
