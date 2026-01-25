@@ -37,7 +37,7 @@ NUM_EPOCHS=3
 LORA_RANK=32
 GRADIENT_ACCUMULATION=1
 
-OUTPUT_PATH="${PROJECT_BASE}/output/rank32"
+OUTPUT_PATH="${PROJECT_BASE}/output/maze_square_single"
 SAVE_STEPS=250
 
 DIFFSYNTH_PATH="/inspire/hdd/project/embodied-multimodality/tongjingqi-CZXS25110029/chj_code/DiffSynth-Studio"

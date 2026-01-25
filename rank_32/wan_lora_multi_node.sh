@@ -36,7 +36,7 @@ LORA_RANK=32
 GRADIENT_ACCUMULATION=1
 
 # ============ 输出配置 ============
-OUTPUT_PATH="${PROJECT_BASE}/output/rank32_multi"
+OUTPUT_PATH="${PROJECT_BASE}/output/maze_square"
 SAVE_STEPS=250
 
 # ============ 路径配置 ============
