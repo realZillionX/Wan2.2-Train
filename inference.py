@@ -1,4 +1,4 @@
-import torch, os, argparse
+import torch, os, argparse, glob
 from diffsynth.pipelines.wan_video import WanVideoPipeline, ModelConfig
 from diffsynth.utils.data import save_video, VideoData
 from PIL import Image
@@ -33,16 +33,21 @@ def main():
     print(f"  Model Base: {args.model_base_path}")
     print(f"  Tokenizer: {args.tokenizer_path}")
     
-    # 1. Initialize Pipeline (Offline Mode)
+    # Resolve split checkpoint files for DiT
+    dit_files = sorted(glob.glob(os.path.join(args.model_base_path, "diffusion_pytorch_model*.safetensors")))
+    if not dit_files:
+        print("Warning: No diffusion checkpoints found via glob! Check path.")
+
+    # 1. Initialize Pipeline (Offline Mode - Explicit Paths)
     pipe = WanVideoPipeline.from_pretrained(
         torch_dtype=torch.bfloat16,
         device=args.device,
         model_configs=[
-            ModelConfig(model_id="Wan-AI/Wan2.2-TI2V-5B", origin_file_pattern=os.path.join(args.model_base_path, "models_t5_umt5-xxl-enc-bf16.pth")),
-            ModelConfig(model_id="Wan-AI/Wan2.2-TI2V-5B", origin_file_pattern=os.path.join(args.model_base_path, "diffusion_pytorch_model*.safetensors")),
-            ModelConfig(model_id="Wan-AI/Wan2.2-TI2V-5B", origin_file_pattern=os.path.join(args.model_base_path, "Wan2.2_VAE.pth")),
+            ModelConfig(path=os.path.join(args.model_base_path, "models_t5_umt5-xxl-enc-bf16.pth")),
+            ModelConfig(path=dit_files),
+            ModelConfig(path=os.path.join(args.model_base_path, "Wan2.2_VAE.pth")),
         ],
-        tokenizer_config=ModelConfig(args.tokenizer_path),
+        tokenizer_config=ModelConfig(path=args.tokenizer_path),
         audio_processor_config=None, # Disable audio processor download
     )
     
