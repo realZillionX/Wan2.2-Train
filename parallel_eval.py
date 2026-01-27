@@ -23,8 +23,50 @@ except ImportError:
     # Fallback or try adding subdirectory if needed, but sys.path.append should work
     pass
 
-# ...
+# ================= Configuration =================
+MODEL_BASE_PATH = "/inspire/hdd/project/embodied-multimodality/public/downloaded_ckpts/Wan2.2-TI2V-5B"
+TOKENIZER_PATH = f"{MODEL_BASE_PATH}/google/umt5-xxl"
+DEFAULT_PROMPT = "Draw a red path connecting two red dots without touching the black walls. Static camera."
 
+# Global worker variables
+pipe = None
+evaluator = None
+
+def setup_logger(output_dir):
+    logging.basicConfig(
+        filename=os.path.join(output_dir, "evaluation.log"),
+        level=logging.INFO,
+        format='%(asctime)s - %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S'
+    )
+    console = logging.StreamHandler()
+    console.setLevel(logging.INFO)
+    logging.getLogger('').addHandler(console)
+
+def init_worker(gpu_id, model_base_path, tokenizer_path, lora_ckpt, metadata_path):
+    global pipe, evaluator
+    device = f"cuda:{gpu_id}"
+    print(f"[Worker {gpu_id}] Initializing on {device}...")
+
+    # 1. Initialize Pipeline
+    dit_files = sorted(glob.glob(os.path.join(model_base_path, "diffusion_pytorch_model*.safetensors")))
+    pipe = WanVideoPipeline.from_pretrained(
+        torch_dtype=torch.bfloat16,
+        device=device,
+        model_configs=[
+            ModelConfig(path=os.path.join(model_base_path, "models_t5_umt5-xxl-enc-bf16.pth")),
+            ModelConfig(path=dit_files),
+            ModelConfig(path=os.path.join(model_base_path, "Wan2.2_VAE.pth")),
+        ],
+        tokenizer_config=ModelConfig(path=tokenizer_path),
+        audio_processor_config=None,
+    )
+
+    # 2. Load LoRA
+    if lora_ckpt and os.path.exists(lora_ckpt):
+        print(f"[Worker {gpu_id}] Loading LoRA: {lora_ckpt}")
+        pipe.load_lora(pipe.dit, lora_ckpt, alpha=1.0)
+    
     # 3. Initialize Evaluator
     if metadata_path and os.path.exists(metadata_path):
         try:
@@ -35,8 +77,40 @@ except ImportError:
            print(f"[Worker {gpu_id}] Warning: Failed to init evaluator: {e}")
            evaluator = None
 
-# ...
-
+def process_item(args):
+    """
+    Args:
+        puzzle_path: Path to input image
+        output_dir: Directory to save results
+        prompt: Text prompt
+        gpu_id: Assigned GPU
+    """
+    puzzle_path, output_dir, prompt, width, height, num_frames = args
+    global pipe, evaluator
+    
+    puzzle_id = os.path.basename(puzzle_path).replace("_puzzle.png", "")
+    video_filename = f"{puzzle_id}_solution.mp4"
+    video_path = os.path.join(output_dir, video_filename)
+    frame_path = os.path.join(output_dir, f"{puzzle_id}_last_frame.png")
+    
+    # 1. Inference
+    try:
+        input_image = Image.open(puzzle_path).convert("RGB")
+        input_image = input_image.resize((width, height))
+        
+        video = pipe(
+            prompt=prompt,
+            negative_prompt="",
+            input_image=input_image,
+            num_frames=num_frames,
+            height=height,
+            width=width,
+            seed=42,
+            tiled=True
+        )
+        
+        save_video(video, video_path, fps=15, quality=5)
+        
         # 2. Extract Last Frame for Evaluation
         # WanVideoPipeline output via save_video logic returns a list of PIL Images (T frames).
         # So video is [PIL_0, PIL_1, ..., PIL_N].
