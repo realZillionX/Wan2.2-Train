@@ -188,23 +188,8 @@ def main():
     gpu_list = [int(x) for x in args.gpu_ids.split(",")]
     num_gpus = len(gpu_list)
     
-    # Multiprocessing Setup
+    # Manual Process spawning for exact GPU control
     ctx = multiprocessing.get_context('spawn')
-    pool = ctx.Pool(
-        processes=num_gpus,
-        initializer=init_worker,
-        initargs=(None, MODEL_BASE_PATH, TOKENIZER_PATH, args.lora_ckpt, metadata_path)
-    )
-    
-    # Note: init_worker inside Pool doesn't easily allow passing different GPU IDs to different workers
-    # standard Pool doesn't support 'worker_id'. 
-    # Trick: A queue or managing process ID.
-    # Better: Use a custom worker function that grabs a GPU ID from a Queue?
-    # Or just spawn N processes manually without Pool if needed?
-    # Actually, we can assume process rank? 
-    # Simpler: Split tasks into N chunks, run each chunk in a separate Process that initializes one GPU.
-    
-    pool.close() # Cancel the previous pool attempt
     
     # Manual Process spawning for exact GPU control
     chunk_size = int(np.ceil(len(puzzle_files) / num_gpus))
