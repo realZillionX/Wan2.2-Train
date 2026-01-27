@@ -17,128 +17,46 @@ import sys
 # Server path to VLMPuzzle
 VLMPUZZLE_PATH = "/inspire/hdd/project/embodied-multimodality/tongjingqi-CZXS25110029/chj_code/VLMPuzzle"
 sys.path.append(VLMPUZZLE_PATH)
-from puzzle.maze_base import MazePuzzleEvaluator, MazeEvaluationResult
+try:
+    from puzzle.maze_square.evaluator import MazeEvaluator
+except ImportError:
+    # Fallback or try adding subdirectory if needed, but sys.path.append should work
+    pass
 
-# ================= Configuration =================
-MODEL_BASE_PATH = "/inspire/hdd/project/embodied-multimodality/public/downloaded_ckpts/Wan2.2-TI2V-5B"
-TOKENIZER_PATH = f"{MODEL_BASE_PATH}/google/umt5-xxl"
-DEFAULT_PROMPT = "Draw a red path connecting two red dots without touching the black walls. Static camera."
+# ...
 
-# Global worker variables
-pipe = None
-evaluator = None
-
-def setup_logger(output_dir):
-    logging.basicConfig(
-        filename=os.path.join(output_dir, "evaluation.log"),
-        level=logging.INFO,
-        format='%(asctime)s - %(message)s',
-        datefmt='%Y-%m-%d %H:%M:%S'
-    )
-    console = logging.StreamHandler()
-    console.setLevel(logging.INFO)
-    logging.getLogger('').addHandler(console)
-
-def init_worker(gpu_id, model_base_path, tokenizer_path, lora_ckpt, metadata_path):
-    global pipe, evaluator
-    device = f"cuda:{gpu_id}"
-    print(f"[Worker {gpu_id}] Initializing on {device}...")
-
-    # 1. Initialize Pipeline
-    dit_files = sorted(glob.glob(os.path.join(model_base_path, "diffusion_pytorch_model*.safetensors")))
-    pipe = WanVideoPipeline.from_pretrained(
-        torch_dtype=torch.bfloat16,
-        device=device,
-        model_configs=[
-            ModelConfig(path=os.path.join(model_base_path, "models_t5_umt5-xxl-enc-bf16.pth")),
-            ModelConfig(path=dit_files),
-            ModelConfig(path=os.path.join(model_base_path, "Wan2.2_VAE.pth")),
-        ],
-        tokenizer_config=ModelConfig(path=tokenizer_path),
-        audio_processor_config=None,
-    )
-
-    # 2. Load LoRA
-    if lora_ckpt and os.path.exists(lora_ckpt):
-        print(f"[Worker {gpu_id}] Loading LoRA: {lora_ckpt}")
-        pipe.load_lora(pipe.dit, lora_ckpt, alpha=1.0)
-    
     # 3. Initialize Evaluator
-    # Evaluator needs to know where puzzles are relative to metadata? 
-    # Actually MazePuzzleEvaluator usually takes metadata_path.
-    # We pass base_dir as the parent of puzzles dir to help it resolve relative paths if needed.
-    # Assuming metadata.json is at metadata_path
     if metadata_path and os.path.exists(metadata_path):
-        # Create a dummy class or use properly if metadata is loaded per call?
-        # MazePuzzleEvaluator loads metadata in __init__
         try:
-           evaluator = MazePuzzleEvaluator(metadata_path, base_dir=os.path.dirname(metadata_path))
+           # MazeEvaluator needs base_dir to find/save things if needed, but mainly metadata.
+           # It inherits from MazePuzzleEvaluator.
+           evaluator = MazeEvaluator(metadata_path, base_dir=os.path.dirname(metadata_path))
         except Exception as e:
            print(f"[Worker {gpu_id}] Warning: Failed to init evaluator: {e}")
            evaluator = None
 
-def process_item(args):
-    """
-    Args:
-        puzzle_path: Path to input image
-        output_dir: Directory to save results
-        prompt: Text prompt
-        gpu_id: Assigned GPU
-    """
-    puzzle_path, output_dir, prompt, width, height, num_frames = args
-    global pipe, evaluator
-    
-    puzzle_id = os.path.basename(puzzle_path).replace("_puzzle.png", "")
-    video_filename = f"{puzzle_id}_solution.mp4"
-    video_path = os.path.join(output_dir, video_filename)
-    frame_path = os.path.join(output_dir, f"{puzzle_id}_last_frame.png")
-    
-    # 1. Inference
-    try:
-        input_image = Image.open(puzzle_path).convert("RGB")
-        input_image = input_image.resize((width, height))
-        
-        video = pipe(
-            prompt=prompt,
-            negative_prompt="",
-            input_image=input_image,
-            num_frames=num_frames,
-            height=height,
-            width=width,
-            seed=42,
-            tiled=True
-        )
-        
-        save_video(video, video_path, fps=15, quality=5)
-        
+# ...
+
         # 2. Extract Last Frame for Evaluation
-        last_frame = video[0][-1] # [C, F, H, W] -> video[0] gives list/tensor? 
-        # DiffSynth save_video handles list of tensors or PIL images.
-        # video is typically a list of PIL Images if not raw tensor.
-        # Check WanVideoPipeline output: usually list of PIL Images per prompt.
-        # pipe() returns 'video' which is usually a list of VideoData or similar?
-        # Let's assume standard DiffSynth output.
-        # Actually save_video source: def save_video(video_data, ...):
-        # If it's a list containing a list of PIL images (batch size 1).
-        
-        # WanVideoPipeline output inspection from inference.py:
-        # video = pipe(...) -> save_video(video, ...)
-        
-        # Let's extract the last frame.
-        # If video is list of list of PIL:
-        pil_last_frame = video[0][-1]
-        pil_last_frame.save(frame_path)
+        # WanVideoPipeline output via save_video logic returns a list of PIL Images (T frames).
+        # So video is [PIL_0, PIL_1, ..., PIL_N].
+        last_frame = video[-1] 
+        last_frame.save(frame_path)
         
         # 3. Evaluate
         result_dict = {}
         if evaluator:
-            # We need to make sure the evaluator can find the original record?
-            # Evaluator looks up record by puzzle_id in metadata.
-            # candidate needs to be the path to the extracted frame.
             try:
+                # MazeEvaluator.evaluate(record_id, candidate_path)
                 result = evaluator.evaluate(puzzle_id, frame_path)
-                result_dict = result.to_dict()
-                result_dict['status'] = 'success'
+                # result is MazeEvaluationResult object
+                result_dict = {
+                    'status': 'success',
+                    'puzzle_id': puzzle_id,
+                    'connected': result.connected,
+                    'hit_wall': result.hit_wall,
+                    'is_valid': result.is_valid
+                }
             except Exception as e:
                 result_dict = {'status': 'eval_error', 'message': str(e), 'puzzle_id': puzzle_id}
         else:
