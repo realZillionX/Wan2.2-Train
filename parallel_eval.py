@@ -128,8 +128,8 @@ def process_item(args):
                     'status': 'success',
                     'puzzle_id': puzzle_id,
                     'connected': result.connected,
-                    'hit_wall': result.hit_wall,
-                    'is_valid': result.is_valid
+                    'hit_wall': result.overlaps_walls, # Map to overlaps_walls
+                    'is_valid': result.connected and not result.overlaps_walls # Derived valid status
                 }
             except Exception as e:
                 result_dict = {'status': 'eval_error', 'message': str(e), 'puzzle_id': puzzle_id}
