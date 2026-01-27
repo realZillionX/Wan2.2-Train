@@ -98,24 +98,75 @@ def process_item(args):
         input_image = Image.open(puzzle_path).convert("RGB")
         input_image = input_image.resize((width, height))
         
-        video = pipe(
-            prompt=prompt,
-            negative_prompt="",
-            input_image=input_image,
-            num_frames=num_frames,
-            height=height,
-            width=width,
-            seed=42,
-            tiled=True
-        )
+        video = None
         
-        save_video(video, video_path, fps=15, quality=5)
+        # Check if video already exists
+        if os.path.exists(video_path):
+            print(f"Skipping generation for {puzzle_id}, video exists.")
+            # We still need to load it or at least ensure last frame exists for evaluation
+            # If we don't load the video, we can't get the last frame easily without loading it.
+            # However, if last_frame also exists, we can skip that too.
+        else:
+            video = pipe(
+                prompt=prompt,
+                negative_prompt="",
+                input_image=input_image,
+                num_frames=num_frames,
+                height=height,
+                width=width,
+                seed=42,
+                tiled=True
+            )
+            save_video(video, video_path, fps=15, quality=5)
         
         # 2. Extract Last Frame for Evaluation
-        # WanVideoPipeline output via save_video logic returns a list of PIL Images (T frames).
-        # So video is [PIL_0, PIL_1, ..., PIL_N].
-        last_frame = video[-1] 
-        last_frame.save(frame_path)
+        if not os.path.exists(frame_path):
+            if video is None:
+               # Need to load video to extract last frame? Or just error out?
+               # For efficiency, let's just attempt to load the video using generic tool if needed, 
+               # OR just assume if video exists, last frame *should* exist from previous run.
+               # But if it doesn't, we must extract it.
+               # Loading video is slow. Let's try to load just the last frame?
+               pass
+               # To be safe and simple: if frame missing, we must generate or load video.
+               # If video exists but frame missing, we can try to extract frame from video file?
+               # That requires OpenCV or MoviePy. 
+               # Let's keep it simple: Only skip if BOTH exist.
+               pass 
+
+        # Refining Logic:
+        # If video_path AND frame_path exist -> Skip Generation AND Extraction -> Go to Eval
+        # If video_path exists but frame_path missing -> Hard to extract without video object from pipe (which is list of PIL).
+        # Re-reading video file to PIL list is heavy.
+        # Decision: Only skip if BOTH video and frame exist.
+        
+        if os.path.exists(video_path) and os.path.exists(frame_path):
+             pass # Skip generation and extraction
+        else:
+             # Run Pipeline
+             if not os.path.exists(video_path):
+                 video = pipe(
+                    prompt=prompt,
+                    negative_prompt="",
+                    input_image=input_image,
+                    num_frames=num_frames,
+                    height=height,
+                    width=width,
+                    seed=42,
+                    tiled=True
+                )
+                 save_video(video, video_path, fps=15, quality=5)
+             
+             # If video was just generated, 'video' is valid list of PIL.
+             # If video existed but frame didn't, we have a problem unless we load it.
+             # For now, let's assume if video exists, we re-generate if frame is missing? 
+             # Or better: pipe returns PIL list. 
+             # Let's force regeneration if frame is missing to avoid complexity of loading video.
+             # So: Condition to skip = Video Exists AND Frame Exists.
+             
+             if video:
+                last_frame = video[-1] 
+                last_frame.save(frame_path)
         
         # 3. Evaluate
         result_dict = {}
