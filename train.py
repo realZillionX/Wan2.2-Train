@@ -167,6 +167,7 @@ def launch_training_task_resume(
                 accelerator.backward(loss)
                 optimizer.step()
                 model_logger.on_step_end(accelerator, model, save_steps, loss=loss)
+                accelerator.log({"train_loss": loss.item()}, step=model_logger.num_steps)
                 scheduler.step()
         if save_steps is None:
             model_logger.on_epoch_end(accelerator, model, epoch_id)
@@ -251,7 +252,10 @@ if __name__ == "__main__":
     accelerator = accelerate.Accelerator(
         gradient_accumulation_steps=args.gradient_accumulation_steps,
         kwargs_handlers=[accelerate.DistributedDataParallelKwargs(find_unused_parameters=args.find_unused_parameters)],
+        log_with="tensorboard",
+        project_dir=args.output_path,
     )
+    accelerator.init_trackers(project_name="wan_train_logs", config=vars(args))
     dataset = UnifiedDataset(
         base_path=args.dataset_base_path,
         metadata_path=args.dataset_metadata_path,

@@ -39,6 +39,11 @@ GRADIENT_ACCUMULATION=1
 OUTPUT_PATH="${PROJECT_BASE}/output/maze_square"
 SAVE_STEPS=250
 
+# ============ 恢复训练配置 (可选) ============
+# 如果需要从特定 checkpoint 恢复(非自动)，请取消注释并填写路径
+# LORA_CHECKPOINT="${PROJECT_BASE}/output/maze_square/epoch-0.safetensors"
+LORA_CHECKPOINT=""
+
 # ============ 路径配置 ============
 DIFFSYNTH_PATH="/inspire/hdd/project/embodied-multimodality/tongjingqi-CZXS25110029/chj_code/DiffSynth-Studio"
 CONFIG_FILE="$(dirname "$0")/accelerate_config_multi_node.yaml"
@@ -79,6 +84,7 @@ accelerate launch \
   --lora_rank ${LORA_RANK} \
   --extra_inputs "input_image" \
   --use_gradient_checkpointing \
-  --save_steps ${SAVE_STEPS}
+  --save_steps ${SAVE_STEPS} \
+  ${LORA_CHECKPOINT:+--lora_checkpoint "${LORA_CHECKPOINT}"}
 
 echo "训练完成！模型保存在: ${OUTPUT_PATH}"
