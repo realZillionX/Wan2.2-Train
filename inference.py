@@ -9,10 +9,10 @@ TOKENIZER_PATH = f"{MODEL_BASE_PATH}/google/umt5-xxl"
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Wan2.2 LoRA Inference Script")
-    parser.add_argument("--lora_ckpt", type=str, required=True, help="Path to LoRA checkpoint (.safetensors)")
-    parser.add_argument("--prompt", type=str, default="A majestic lion standing on a rock", help="Text prompt")
-    parser.add_argument("--negative_prompt", type=str, default="色调艳丽，过曝，静态，细节模糊不清，字幕，风格，作品，画作，画面，静止，整体发灰，最差质量，低质量，JPEG压缩残留，丑陋的，残缺的，多余的手指，画得不好的手部，画得不好的脸部，畸形的，毁容的，形态畸形的肢体，手指融合，静止不动的画面，杂乱的背景，三条腿，背景人很多，倒着走", help="Negative prompt")
-    parser.add_argument("--input_image", type=str, default=None, help="Input image path (optional, for I2V)")
+    parser.add_argument("--lora_ckpt", type=str, default="/inspire/hdd/project/embodied-multimodality/tongjingqi-CZXS25110029/chj_code/Wan2.2-Train/output/maze_square/step-10000.safetensors", help="Path to LoRA checkpoint (.safetensors)")
+    parser.add_argument("--prompt", type=str, default="Draw a red path connecting two red dots without touching the black walls. Static camera.", help="Text prompt")
+    parser.add_argument("--negative_prompt", type=str, default="", help="Negative prompt")
+    parser.add_argument("--input_image", type=str, default="/inspire/hdd/project/embodied-multimodality/public/hjchen/MazeSquare/puzzles/5e2d0bfc-2305-4210-b327-a031831fd507_puzzle.png", help="Input image path (optional, for I2V)")
     parser.add_argument("--height", type=int, default=896, help="Video height (must be multiple of 32)")
     parser.add_argument("--width", type=int, default=480, help="Video width (must be multiple of 32)")
     parser.add_argument("--num_frames", type=int, default=81, help="Number of frames ((n-1)%4==0)")
