@@ -67,12 +67,83 @@ def init_worker(gpu_id, model_base_path, tokenizer_path, lora_ckpt, metadata_pat
         print(f"[Worker {gpu_id}] Loading LoRA: {lora_ckpt}")
         pipe.load_lora(pipe.dit, lora_ckpt, alpha=1.0)
     
+# ... (Imports remain the same)
+
+class DebugMazeEvaluator(MazeEvaluator):
+    def evaluate(self, puzzle_id, candidate_path):
+        # 1. Run standard evaluation
+        try:
+            result = super().evaluate(puzzle_id, candidate_path)
+        except Exception as e:
+            print(f"Evaluation failed internally for {puzzle_id}: {e}")
+            raise e
+
+        # 2. Debug Visualization (Only if failed or forced)
+        # We'll save debug images to a 'debug' folder inside the candidate's directory
+        candidate_path = os.path.abspath(candidate_path)
+        debug_dir = os.path.join(os.path.dirname(candidate_path), "debug_viz")
+        os.makedirs(debug_dir, exist_ok=True)
+        
+        # Re-load images to generate masks (logic copied/adapted from MazePuzzleEvaluator)
+        record = self.get_record(puzzle_id)
+        
+        # Load Candidate
+        with Image.open(candidate_path) as cand_image:
+            candidate_image_rgb = cand_image.convert("RGB")
+        candidate_pixels = np.array(candidate_image_rgb)
+        
+        # Load Source (for Wall Mask)
+        source_path = self.resolve_path(record["image"])
+        with Image.open(source_path) as src_image:
+            puzzle_image = src_image.convert("RGB")
+        
+        if candidate_image_rgb.size != puzzle_image.size:
+             puzzle_image = puzzle_image.resize(candidate_image_rgb.size, Image.NEAREST)
+        puzzle_pixels = np.array(puzzle_image)
+
+        # Generate Masks
+        red_mask = self._red_mask(candidate_pixels)
+        wall_mask = self._wall_mask(puzzle_pixels)
+        
+        # Create Visualization
+        # Red Mask -> Red channel
+        # Wall Mask -> Blue channel
+        # Overlap -> Purple/White
+        
+        h, w = red_mask.shape
+        debug_img = np.zeros((h, w, 3), dtype=np.uint8)
+        
+        # Background: Dimmed Original
+        debug_img = (candidate_pixels * 0.3).astype(np.uint8)
+        
+        # Highlight Red Detection (Green for visibility)
+        debug_img[red_mask] = [0, 255, 0] 
+        
+        # Highlight Walls (Blue)
+        debug_img[wall_mask] = [0, 0, 255]
+        
+        # Highlight Overlap (Red - Danger!)
+        overlap = red_mask & wall_mask
+        debug_img[overlap] = [255, 0, 0]
+        
+        # Save
+        save_name = f"{puzzle_id}_status_{'PASS' if result.connected and not result.overlaps_walls else 'FAIL'}.png"
+        Image.fromarray(debug_img).save(os.path.join(debug_dir, save_name))
+        
+        return result
+
+def init_worker(gpu_id, model_base_path, tokenizer_path, lora_ckpt, metadata_path):
+    global pipe, evaluator
+    device = f"cuda:{gpu_id}"
+    print(f"[Worker {gpu_id}] Initializing on {device}...")
+
+    # ... (Pipeline Init remains same) ...
+
     # 3. Initialize Evaluator
     if metadata_path and os.path.exists(metadata_path):
         try:
-           # MazeEvaluator needs base_dir to find/save things if needed, but mainly metadata.
-           # It inherits from MazePuzzleEvaluator.
-           evaluator = MazeEvaluator(metadata_path, base_dir=os.path.dirname(metadata_path))
+           # Use DebugEvaluator for visualization
+           evaluator = DebugMazeEvaluator(metadata_path, base_dir=os.path.dirname(metadata_path))
         except Exception as e:
            print(f"[Worker {gpu_id}] Warning: Failed to init evaluator: {e}")
            evaluator = None
