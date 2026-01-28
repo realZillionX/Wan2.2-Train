@@ -180,7 +180,8 @@ def process_item(args):
                     'puzzle_id': puzzle_id,
                     'connected': result.connected,
                     'hit_wall': result.overlaps_walls, # Map to overlaps_walls
-                    'is_valid': result.connected and not result.overlaps_walls # Derived valid status
+                    'is_valid': result.connected and not result.overlaps_walls, # Derived valid status
+                    'message': result.message
                 }
             except Exception as e:
                 result_dict = {'status': 'eval_error', 'message': str(e), 'puzzle_id': puzzle_id}
@@ -262,10 +263,15 @@ def main():
             pbar.update(1)
             
             if res.get('status') == 'success':
-                msg = f"Puzzle {res['puzzle_id']}: Connected={res.get('connected')}"
-                logging.info(msg)
+                # Log detailed reason even if technical status is success (but logical failure)
+                is_valid = res.get('is_valid', False)
+                msg = f"Puzzle {res['puzzle_id']}: Valid={is_valid}, Connected={res.get('connected')}, HitWall={res.get('hit_wall')}, Msg='{res.get('message')}'"
+                if is_valid:
+                    logging.info(f"[SUCCESS] {msg}")
+                else:
+                    logging.warning(f"[FAILURE] {msg}")
             else:
-                logging.error(f"Failed {res.get('puzzle_id')}: {res.get('message')}")
+                logging.error(f"[ERROR] Failed {res.get('puzzle_id')}: {res.get('message')}")
 
     for p in processes:
         p.join()
