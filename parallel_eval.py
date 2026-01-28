@@ -96,7 +96,8 @@ def process_item(args):
     # 1. Inference
     try:
         input_image = Image.open(puzzle_path).convert("RGB")
-        input_image = input_image.resize((width, height))
+        # Use NEAREST to avoid anti-aliasing blurring walls, matching Evaluator logic
+        input_image = input_image.resize((width, height), resample=Image.NEAREST)
         
         video = None
         
