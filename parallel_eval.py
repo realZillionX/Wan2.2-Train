@@ -270,7 +270,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--input_dir", type=str, required=True, help="Directory containing _puzzle.png files")
     parser.add_argument("--output_dir", type=str, default="evaluation_results", help="Output directory")
-    parser.add_argument("--lora_ckpt", type=str, required=True, help="Path to LoRA checkpoint")
+    parser.add_argument("--lora_ckpt", type=str, default=None, help="Path to LoRA checkpoint (Optional)")
     parser.add_argument("--gpu_ids", type=str, default="0,1,2,3,4,5,6,7", help="Comma separated GPU IDs")
     parser.add_argument("--prompt", type=str, default=DEFAULT_PROMPT)
     parser.add_argument("--width", type=int, default=480)
